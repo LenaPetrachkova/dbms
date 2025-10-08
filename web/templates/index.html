@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DBMS</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="db-info">
+        <h1>DBMS</h1>
+        <p>Database: {{ db_name }}</p>
+      </div>
+      <div class="actions">
+        <form method="post" action="/database/new" class="inline-form">
+          <input type="text" name="name" placeholder="New database name" required />
+          <button type="submit">New</button>
+        </form>
+        <form method="post" action="/database/upload" enctype="multipart/form-data" class="inline-form">
+          <label class="button">
+            Upload
+            <input type="file" name="file" accept=".json" onchange="this.form.submit()" />
+          </label>
+        </form>
+        <a href="/database/download" class="button">Download</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="card create-card">
+        <h2>Create Table</h2>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="post" action="/tables/create" class="form" id="create-table-form">
+          <label>Table name</label>
+          <input type="text" name="name" required />
+
+          <label>Fields</label>
+          <p class="hint">Choose type for each field. Interval type allows optional min/max values.</p>
+          <div id="fields-container"></div>
+          <button type="button" id="add-field-btn">Add Field</button>
+
+          <input type="hidden" name="schema_fields" id="schema_fields" />
+          <button type="submit">Create Table</button>
+        </form>
+      </section>
+
+      <section class="card tables-card">
+        <h2>Tables</h2>
+        {% if tables %}
+        <table class="tables-list">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Fields</th>
+              <th>Rows</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, table in tables.items() %}
+            <tr>
+              <td><a href="/tables/{{ name }}/view">{{ name }}</a></td>
+              <td>
+                <ul class="schema-list">
+                  {% for field_name, ftype in table.schema.items() %}
+                  <li>{{ field_name }} ({{ ftype.type }})</li>
+                  {% endfor %}
+                </ul>
+              </td>
+              <td>{{ table.rows|length }}</td>
+              <td>
+                <form method="post" action="/tables/{{ name }}/delete">
+                  <button type="submit" class="danger">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p>No tables yet.</p>
+        {% endif %}
+      </section>
+    </main>
+
+    <script>
+      const fieldTypes = ["integer", "real", "char", "string", "htmlFile", "stringInvl"];        
+      const fieldsContainer = document.getElementById("fields-container");
+      const addFieldBtn = document.getElementById("add-field-btn");
+      const schemaField = document.getElementById("schema_fields");
+      const form = document.getElementById("create-table-form");
+
+      function createFieldRow(initial = {}) {
+        const row = document.createElement("div");
+        row.className = "field-row";
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.placeholder = "Field name";
+        nameInput.value = initial.name || "";
+        nameInput.required = true;
+
+        const typeSelect = document.createElement("select");
+        fieldTypes.forEach((type) => {
+          const option = document.createElement("option");
+          option.value = type;
+          option.textContent = type;
+          if (initial.type === type) option.selected = true;
+          typeSelect.appendChild(option);
+        });
+
+        const intervalWrapper = document.createElement("div");
+        intervalWrapper.className = "interval-wrapper";
+
+        const minInput = document.createElement("input");
+        minInput.type = "text";
+        minInput.placeholder = "min";
+        minInput.value = initial.min || "";
+
+        const maxInput = document.createElement("input");
+        maxInput.type = "text";
+        maxInput.placeholder = "max";
+        maxInput.value = initial.max || "";
+
+        intervalWrapper.appendChild(minInput);
+        intervalWrapper.appendChild(maxInput);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.textContent = "Remove";
+        removeBtn.className = "remove-btn";
+        removeBtn.addEventListener("click", () => {
+          row.remove();
+          if (!fieldsContainer.children.length) {
+            createFieldRow();
+          }
+        });
+
+        row.appendChild(nameInput);
+        row.appendChild(typeSelect);
+        row.appendChild(intervalWrapper);
+        row.appendChild(removeBtn);
+
+        fieldsContainer.appendChild(row);
+
+        function toggleInterval() {
+          intervalWrapper.style.display = typeSelect.value === "stringInvl" ? "flex" : "none";
+        }
+
+        typeSelect.addEventListener("change", toggleInterval);
+        toggleInterval();
+      }
+
+      addFieldBtn.addEventListener("click", () => createFieldRow());
+
+      if (!fieldsContainer.children.length) {
+        createFieldRow({ name: "id", type: "integer" });
+        createFieldRow({ name: "name", type: "string" });
+      }
+
+      form.addEventListener("submit", (event) => {
+        const rows = Array.from(fieldsContainer.querySelectorAll(".field-row"));
+        if (!rows.length) {
+          event.preventDefault();
+          alert("Add at least one field");
+          return;
+        }
+        const lines = rows.map((row) => {
+          const inputs = row.querySelectorAll("input, select");
+          const name = inputs[0].value.trim();
+          const type = inputs[1].value;
+          if (!name) {
+            throw new Error("Field name is required");
+          }
+          if (type === "stringInvl") {
+            const min = inputs[2].value.trim();
+            const max = inputs[3].value.trim();
+            return `${name}:${type}:${min}:${max}`;
+          }
+          return `${name}:${type}`;
+        });
+        schemaField.value = lines.join("\n");
+      });
+    </script>
+  </body>
+</html>
+
+

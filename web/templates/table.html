@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Table - {{ table.name }}</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Table: {{ table.name }}</h1>
+      <nav><a href="/" class="button">← Back</a></nav>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Schema</h2>
+        <ul class="list">
+          {% for name, ftype in table.schema.items() %}
+          <li><b>{{ name }}</b>: {{ ftype.type }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Add Row</h2>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="post" action="/tables/{{ table.name }}/rows/add" class="form" enctype="multipart/form-data">
+          {% for name, ftype in table.schema.items() %}
+          <label>{{ name }} ({{ ftype.type }})</label>
+          {% if ftype.type == "htmlFile" %}
+          <div class="file-input-wrapper">
+            <input type="file" name="upload_{{ name }}" accept=".html,.htm" id="file_{{ name }}" required />
+            <label for="file_{{ name }}" class="file-label">Choose HTML file</label>
+            <span class="file-name" id="filename_{{ name }}">No file chosen</span>
+          </div>
+          <script>
+            document.getElementById('file_{{ name }}').addEventListener('change', function(e) {
+              document.getElementById('filename_{{ name }}').textContent = e.target.files[0]?.name || 'No file chosen';
+            });
+          </script>
+          {% elif ftype.type == "integer" %}
+          <input type="number" name="field_{{ name }}" step="1" />
+          {% elif ftype.type == "real" %}
+          <input type="number" name="field_{{ name }}" step="any" />
+          {% elif ftype.type == "char" %}
+          <input type="text" name="field_{{ name }}" maxlength="1" />
+          {% else %}
+          <input type="text" name="field_{{ name }}" />
+          {% endif %}
+          {% endfor %}
+          <button type="submit">Add Row</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Rows</h2>
+        {% if table.rows %}
+        <form method="post" action="/tables/{{ table.name }}/rows/sort/form" class="sort-form">
+          <label>Sort by</label>
+          <select name="column">
+            {% for col in columns %}
+            <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+          </select>
+          <label class="checkbox">
+            <input type="checkbox" name="descending" value="true" /> Descending
+          </label>
+          <button type="submit">Sort</button>
+        </form>
+
+        <div class="table">
+          <div class="table-row table-header">
+            {% for col in table.schema.keys() %}
+            <div class="table-cell">{{ col }}</div>
+            {% endfor %}
+            <div class="table-cell">Actions</div>
+          </div>
+          {% for row in table.rows %}
+          <div class="table-row">
+            {% for col, ftype in table.schema.items() %}
+            <div class="table-cell">
+              {% if ftype.type == "htmlFile" %}
+              <div class="html-preview">
+                <span>HTML ({{ row[col]|length }} chars)</span>
+                <a href="/tables/{{ table.name }}/rows/{{ row['_id'] }}/html/{{ col }}/preview" target="_blank" class="btn-small">Preview</a>
+                <a href="/tables/{{ table.name }}/rows/{{ row['_id'] }}/html/{{ col }}/download" class="btn-small">Download</a>
+              </div>
+              {% else %}
+              {{ row[col] }}
+              {% endif %}
+            </div>
+            {% endfor %}
+            <div class="table-cell actions">
+              <details>
+                <summary>Edit</summary>
+                <form method="post" action="/tables/{{ table.name }}/rows/{{ row['_id'] }}/edit" class="edit-form" enctype="multipart/form-data">
+                  {% for col, ftype in table.schema.items() %}
+                  <label>{{ col }}</label>
+                  {% if ftype.type == "htmlFile" %}
+                  <div class="file-input-wrapper">
+                    <input type="file" name="upload_{{ col }}" accept=".html,.htm" id="editfile_{{ col }}_{{ row._id }}" />
+                    <label for="editfile_{{ col }}_{{ row._id }}" class="file-label">Choose file (current: {{ row[col]|length }} chars)</label>
+                    <span class="file-name" id="editfilename_{{ col }}_{{ row._id }}">Keep current</span>
+                  </div>
+                  <script>
+                    document.getElementById('editfile_{{ col }}_{{ row._id }}').addEventListener('change', function(e) {
+                      document.getElementById('editfilename_{{ col }}_{{ row._id }}').textContent = e.target.files[0]?.name || 'Keep current';
+                    });
+                  </script>
+                  {% elif ftype.type == "integer" %}
+                  <input type="number" name="field_{{ col }}" value="{{ row[col] }}" step="1" />
+                  {% elif ftype.type == "real" %}
+                  <input type="number" name="field_{{ col }}" value="{{ row[col] }}" step="any" />
+                  {% elif ftype.type == "char" %}
+                  <input type="text" name="field_{{ col }}" value="{{ row[col] }}" maxlength="1" />
+                  {% else %}
+                  <input type="text" name="field_{{ col }}" value="{{ row[col] }}" />
+                  {% endif %}
+                  {% endfor %}
+                  <button type="submit">Save</button>
+                </form>
+              </details>
+              <form method="post" action="/tables/{{ table.name }}/rows/{{ row['_id'] }}/delete">
+                <button type="submit" class="danger">Delete</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p>No rows.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>
+
+
