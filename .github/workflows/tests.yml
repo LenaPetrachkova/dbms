@@ -1,0 +1,46 @@
+name: Run Tests
+
+# Коли запускати: при push або pull request у гілку main
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    # Запускаємо на матриці операційних систем
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        # Три ОС для тестування
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.11']
+    
+    steps:
+    # Крок 1: Завантажуємо код з репозиторію
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    # Крок 2: Встановлюємо Python
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    # Крок 3: Встановлюємо Poetry (менеджер залежностей)
+    - name: Install Poetry
+      run: |
+        pip install poetry
+    
+    # Крок 4: Встановлюємо всі залежності проєкту
+    - name: Install dependencies
+      run: |
+        poetry install
+    
+    # Крок 5: Запускаємо тести
+    - name: Run tests with pytest
+      run: |
+        poetry run pytest -v tests/
+
