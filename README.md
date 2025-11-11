@@ -1,0 +1,32 @@
+# DBMS Lab
+
+mini Database Management System with desktop and web interfaces.
+
+## Features
+
+- Support for multiple data types: integer, real, char, string, htmlFile, stringInvl
+- Desktop GUI (Tkinter)
+- Web interface (FastAPI)
+- JSON-based storage
+- Full CRUD operations
+- Table sorting
+- Data validation
+
+## Running Tests
+
+```bash
+pytest tests/
+```
+
+## Desktop Version
+
+```bash
+python -m desktop.main
+```
+
+## Web Version
+
+```bash
+uvicorn web.app:app --reload
+```
+
