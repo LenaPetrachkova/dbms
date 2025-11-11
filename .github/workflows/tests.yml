@@ -25,22 +25,30 @@ jobs:
     
     # Крок 2: Встановлюємо Python
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     
-    # Крок 3: Встановлюємо Poetry (менеджер залежностей)
+    # Крок 3: Встановлюємо Poetry через офіційний action
     - name: Install Poetry
-      run: |
-        pip install poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
     
-    # Крок 4: Встановлюємо всі залежності проєкту
+    # Крок 4: Кешуємо залежності для швидшості
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+    
+    # Крок 5: Встановлюємо всі залежності проєкту
     - name: Install dependencies
-      run: |
-        poetry install
+      run: poetry install --no-interaction
     
-    # Крок 5: Запускаємо тести
+    # Крок 6: Запускаємо тести
     - name: Run tests with pytest
-      run: |
-        poetry run pytest -v tests/
+      run: poetry run pytest -v tests/
 
