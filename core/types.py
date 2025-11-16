@@ -162,8 +162,6 @@ class StringIntervalType(IntervalType):
 
 
 def build_field_type(type_descriptor: Any) -> FieldType:
-    """Factory helper to normalize schema definitions."""
-
     if isinstance(type_descriptor, FieldType):
         return type_descriptor
     if isinstance(type_descriptor, dict):
