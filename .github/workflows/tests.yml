@@ -23,6 +23,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
@@ -32,5 +33,14 @@ jobs:
     
     - name: Run tests
       run: |
+        pytest -v tests/ --tb=short > test-output.log 2>&1 || true
         pytest -v tests/
+    
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: test-output.log
+        retention-days: 7
 
